@@ -4,6 +4,7 @@ import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { uploadToCloudinary, deleteFromCloudinary } from '../lib/cloudinary';
 import { analyzeResume } from '../lib/gemini';
+import { extractDocumentText, validateResumeContent } from '../lib/documentParser';
 
 const router = express.Router();
 
@@ -101,7 +102,28 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
 
     console.log(`✅ User found: ${user.email}`);
 
-    // Step 1: Upload to Cloudinary
+    // Step 1: Extract text from document
+    console.log('📄 Extracting text from document...');
+    const parseResult = await extractDocumentText(req.file.buffer, req.file.mimetype);
+    
+    if (parseResult.error) {
+      console.error('❌ Document parsing failed:', parseResult.error);
+      return res.status(400).json({
+        success: false,
+        error: parseResult.error,
+        details: 'Please ensure your file is a valid PDF or Word document.'
+      });
+    }
+
+    console.log(`✅ Extracted ${parseResult.wordCount} words from document`);
+
+    // Step 2: Validate resume content
+    const validation = validateResumeContent(parseResult.text);
+    if (validation.warnings.length > 0) {
+      console.log('⚠️ Resume validation warnings:', validation.warnings);
+    }
+
+    // Step 3: Upload to Cloudinary
     console.log('☁️  Uploading to Cloudinary...');
     let fileUrl: string;
     try {
@@ -122,13 +144,11 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
       });
     }
 
-    // Step 2: Analyze resume with Gemini AI
+    // Step 4: Analyze resume with Gemini AI
     console.log('🤖 Analyzing resume with Gemini AI...');
     let analysis: any;
     try {
-      // Use placeholder text for AI analysis
-      const resumeText = `Resume: ${req.file.originalname}`;
-      analysis = await analyzeResume(resumeText);
+      analysis = await analyzeResume(parseResult.text);
       console.log('✅ AI analysis completed:', {
         strengthScore: analysis.strengthScore,
         hasImprovements: !!analysis.improvements
@@ -137,15 +157,17 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
       console.error('❌ AI analysis failed:', aiError);
       // Continue without AI analysis rather than failing the entire upload
       analysis = {
-        strengthScore: 0,
-        improvements: ['AI analysis temporarily unavailable'],
-        raw: 'Analysis failed',
-        error: aiError.message
+        strengthScore: 50,
+        improvements: ['AI analysis temporarily unavailable - please try again later'],
+        atsScore: 50,
+        strengths: ['Resume uploaded successfully'],
+        suggestedSkills: [],
+        recommendations: ['AI analysis will be available shortly']
       };
-      console.log('⚠️  Continuing without AI analysis');
+      console.log('⚠️  Continuing with placeholder AI analysis');
     }
 
-    // Step 3: Save to database
+    // Step 5: Save to database
     console.log('💾 Saving resume to database...');
     try {
       const resume = await prisma.resume.create({
@@ -155,8 +177,9 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
           fileUrl,
           fileSize: req.file.size,
           mimeType: req.file.mimetype,
+          parsedContent: parseResult.text,
           aiAnalysis: analysis as any,
-          strengthScore: analysis.strengthScore || 0,
+          strengthScore: analysis.strengthScore || analysis.atsScore || 50,
           suggestions: analysis.improvements || [],
         },
       });

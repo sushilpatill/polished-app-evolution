@@ -6,7 +6,8 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
-export const geminiModel = genAI ? genAI.getGenerativeModel({ model: 'gemini-pro' }) : null;
+// Use gemini-2.0-flash (gemini-pro is deprecated)
+export const geminiModel = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }) : null;
 
 /**
  * Analyze resume content using Gemini AI
@@ -54,6 +55,10 @@ Provide the response in JSON format with these keys: strengthScore, strengths, i
  * Generate personalized career advice
  */
 export async function generateCareerAdvice(profile: any) {
+  if (!geminiModel) {
+    return 'AI career advice is temporarily unavailable. Please configure your Gemini API key.';
+  }
+
   const prompt = `You are an expert career coach. Based on this professional profile, provide personalized career advice:
 
 Current Role: ${profile.currentRole || 'Not specified'}
@@ -79,6 +84,10 @@ Keep it concise and actionable.`;
  * Generate interview preparation questions
  */
 export async function generateInterviewQuestions(jobTitle: string, company: string) {
+  if (!geminiModel) {
+    return [];
+  }
+
   const prompt = `Generate 10 interview questions for a ${jobTitle} position at ${company}. Include:
 - 3 behavioral questions
 - 4 technical/role-specific questions
@@ -105,6 +114,10 @@ Format as JSON array with: { question, type, tips }`;
  * Match jobs to user profile
  */
 export async function matchJobToProfile(jobDescription: string, userProfile: any) {
+  if (!geminiModel) {
+    return { raw: 'AI job matching is temporarily unavailable. Please configure your Gemini API key.' };
+  }
+
   const prompt = `You are a job matching expert. Calculate how well this job matches the candidate's profile.
 
 Job Description:

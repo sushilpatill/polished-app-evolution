@@ -10,7 +10,7 @@ import prisma from './lib/prisma';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import profileRoutes from './routes/profile';
-import resumeRoutes from './routes/resumes_simple';
+import resumeRoutes from './routes/resumes';
 import webhookRoutes from './routes/webhooks';
 
 dotenv.config();
@@ -62,7 +62,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 });
 
 // Webhook route (before JSON parsing - needs raw body)
-// app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
 
 // Body parsing middleware
 app.use(express.json());

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -26,7 +26,49 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const Resume = () => {
+// Error Boundary Component
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ResumeErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Resume page error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-8">
+          <div className="max-w-md text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
+            <p className="text-muted-foreground mb-4">
+              {this.state.error?.message || 'An unexpected error occurred'}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+const ResumeContent = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -408,7 +450,10 @@ const Resume = () => {
                                   AI Analysis
                                 </p>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                                  {resume.aiAnalysis.substring(0, 200)}...
+                                  {typeof resume.aiAnalysis === 'string' 
+                                    ? resume.aiAnalysis.substring(0, 200) 
+                                    : JSON.stringify(resume.aiAnalysis, null, 2).substring(0, 200)
+                                  }...
                                 </p>
                               </div>
 
@@ -473,6 +518,14 @@ const Resume = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const Resume = () => {
+  return (
+    <ResumeErrorBoundary>
+      <ResumeContent />
+    </ResumeErrorBoundary>
   );
 };
 
