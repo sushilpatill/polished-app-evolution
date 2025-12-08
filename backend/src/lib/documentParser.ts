@@ -141,6 +141,7 @@ export async function extractDocumentText(
 
 /**
  * Validate resume content has expected sections
+ * Optimized for student and entry-level resumes
  */
 export function validateResumeContent(text: string): {
   isValid: boolean;
@@ -150,32 +151,59 @@ export function validateResumeContent(text: string): {
     hasExperience: boolean;
     hasEducation: boolean;
     hasSkills: boolean;
+    hasProjects: boolean;
   };
 } {
   const warnings: string[] = [];
+  const lowerText = text.toLowerCase();
   
-  // Check for common resume sections
+  // Check for common resume sections (more lenient for students)
   const hasContact = /email|phone|@|linkedin|github|contact/i.test(text);
-  const hasExperience = /experience|work|employment|position|role|job|company/i.test(text);
-  const hasEducation = /education|university|college|degree|bachelor|master|school/i.test(text);
-  const hasSkills = /skills|technologies|tools|expertise|proficient|languages/i.test(text);
+  const hasExperience = /experience|work|employment|position|role|job|company|intern/i.test(text);
+  const hasEducation = /education|university|college|degree|bachelor|master|school|gpa|major/i.test(text);
+  const hasSkills = /skills|technologies|tools|expertise|proficient|languages|programming|technical/i.test(text);
+  const hasProjects = /project|portfolio|github|built|developed|created|implemented/i.test(text);
   
-  if (!hasContact) warnings.push('Missing contact information');
-  if (!hasExperience) warnings.push('Missing work experience section');
-  if (!hasEducation) warnings.push('Missing education section');
-  if (!hasSkills) warnings.push('Missing skills section');
+  // For students/entry-level, projects can substitute for work experience
+  const hasRelevantExperience = hasExperience || hasProjects;
   
-  // Resume is valid if it has at least 2 key sections
-  const sectionCount = [hasContact, hasExperience, hasEducation, hasSkills].filter(Boolean).length;
-  const isValid = sectionCount >= 2;
+  // Generate helpful warnings (not errors)
+  if (!hasContact) {
+    warnings.push('Consider adding contact information (email, phone, LinkedIn)');
+  }
+  if (!hasExperience && !hasProjects) {
+    warnings.push('Add work experience, internships, or personal/academic projects to showcase your abilities');
+  }
+  if (!hasEducation) {
+    warnings.push('Include your education details (degree, major, GPA if above 3.0)');
+  }
+  if (!hasSkills) {
+    warnings.push('Add a skills section to highlight your technical and soft skills');
+  }
+  
+  // Check for common student resume elements
+  if (!hasProjects && !hasExperience) {
+    warnings.push('💡 TIP: Academic projects, hackathons, and personal projects are valuable for your resume');
+  }
+  
+  // Check for portfolio links (important for students)
+  const hasPortfolio = /github\.com|linkedin\.com|portfolio|behance|dribbble/i.test(text);
+  if (!hasPortfolio) {
+    warnings.push('💡 TIP: Add links to your GitHub, LinkedIn, or portfolio to stand out');
+  }
+  
+  // Resume is valid if it has at least education + (experience OR projects OR skills)
+  // More lenient than before - students may not have all sections
+  const hasMinimumSections = hasEducation && (hasRelevantExperience || hasSkills);
+  const isValid = hasMinimumSections;
   
   if (!isValid) {
-    warnings.push('Resume appears incomplete. A good resume should have contact info, experience, education, and skills.');
+    warnings.push('Your resume should include: Education + (Experience/Projects OR Skills). Don\'t worry - as a student or entry-level candidate, academic projects and coursework are valuable!');
   }
   
   return {
     isValid,
     warnings,
-    sections: { hasContact, hasExperience, hasEducation, hasSkills },
+    sections: { hasContact, hasExperience, hasEducation, hasSkills, hasProjects },
   };
 }

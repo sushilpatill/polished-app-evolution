@@ -11,6 +11,7 @@ export const geminiModel = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0
 
 /**
  * Analyze resume content using Gemini AI
+ * Optimized for students and entry-level professionals
  */
 export async function analyzeResume(resumeText: string) {
   if (!geminiModel) {
@@ -21,33 +22,85 @@ export async function analyzeResume(resumeText: string) {
     };
   }
 
-  const prompt = `You are an expert career coach and resume analyst. Analyze the following resume and provide:
+  const prompt = `You are an expert career coach specializing in helping students and entry-level professionals. Analyze the following resume with a focus on early-career needs.
 
-1. Overall strength score (0-100)
-2. Key strengths (list 3-5 points)
-3. Areas for improvement (list 3-5 points)
-4. Suggested skills to add
-5. ATS (Applicant Tracking System) compatibility score
-6. Industry-specific recommendations
+IMPORTANT CONTEXT:
+- This may be a student resume (academic projects, coursework, internships are valuable)
+- Entry-level candidates may have less work experience but compensate with projects, skills, and education
+- Be encouraging and constructive - focus on what's done well AND what can be improved
+- Consider academic projects, volunteer work, and extracurricular activities as legitimate experience
 
 Resume content:
 ${resumeText}
 
-Provide the response in JSON format with these keys: strengthScore, strengths, improvements, suggestedSkills, atsScore, recommendations`;
+Provide detailed analysis including:
 
-  const result = await geminiModel.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
-  
+1. **strengthScore** (0-100): Overall resume quality considering entry-level expectations
+2. **atsScore** (0-100): How well it will perform with Applicant Tracking Systems
+3. **strengths** (array): 3-5 specific things done well (e.g., "Clear education section", "Quantified achievements")
+4. **improvements** (array): 3-5 actionable suggestions specific to this resume (e.g., "Add GPA if above 3.5", "Include relevant coursework")
+5. **suggestedSkills** (array): 5-10 relevant skills to consider adding based on their field
+6. **recommendations** (array): 3-5 strategic recommendations for students/entry-level (e.g., "Highlight academic projects", "Add link to GitHub portfolio")
+
+STUDENT-SPECIFIC GUIDANCE:
+- If limited work experience: Suggest highlighting academic projects, coursework, clubs, volunteer work
+- Recommend adding: GitHub/portfolio links, relevant coursework, certifications (free ones like Coursera, Google certificates)
+- Suggest quantifying achievements (e.g., "Led team of 5", "Improved efficiency by 20%")
+- Recommend action verbs and concrete examples
+- Mention formatting improvements (consistency, clear sections, professional email)
+
+Return ONLY valid JSON with these exact keys: strengthScore, atsScore, strengths, improvements, suggestedSkills, recommendations
+
+Example format:
+{
+  "strengthScore": 75,
+  "atsScore": 80,
+  "strengths": ["Clear contact information", "Well-structured education section"],
+  "improvements": ["Add quantifiable achievements", "Include relevant projects"],
+  "suggestedSkills": ["Python", "Git", "React"],
+  "recommendations": ["Create a GitHub portfolio", "Add GPA if above 3.0"]
+}`;
+
   try {
+    const result = await geminiModel.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
     // Try to parse as JSON
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      // Validate and ensure all required fields exist
+      return {
+        strengthScore: parsed.strengthScore || 50,
+        atsScore: parsed.atsScore || 50,
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+        improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+        suggestedSkills: Array.isArray(parsed.suggestedSkills) ? parsed.suggestedSkills : [],
+        recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : []
+      };
     }
-    return { raw: text };
-  } catch (error) {
-    return { raw: text };
+    
+    // If no JSON found, return fallback
+    return { 
+      strengthScore: 50,
+      atsScore: 50,
+      strengths: ['Resume uploaded successfully'],
+      improvements: ['AI analysis format error - please try again'],
+      suggestedSkills: [],
+      recommendations: [text.substring(0, 200)]
+    };
+  } catch (error: any) {
+    console.error('Error analyzing resume:', error);
+    return { 
+      strengthScore: 50,
+      atsScore: 50,
+      strengths: ['Resume uploaded successfully'],
+      improvements: ['AI analysis error - please try again later'],
+      suggestedSkills: [],
+      recommendations: []
+    };
   }
 }
 
