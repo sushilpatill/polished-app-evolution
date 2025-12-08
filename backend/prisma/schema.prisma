@@ -135,6 +135,7 @@ model Resume {
   parsedContent String?
   aiAnalysis    Json?
   strengthScore Int?
+  atsScore      Int?
   suggestions   String[]
   isActive      Boolean  @default(true)
   isPrimary     Boolean  @default(false)

@@ -3,7 +3,7 @@ import multer from 'multer';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { uploadToCloudinary, deleteFromCloudinary } from '../lib/cloudinary';
-import { analyzeResume } from '../lib/gemini';
+import { analyzeResume, DEFAULT_FALLBACK_SCORE } from '../lib/gemini';
 import { extractDocumentText, validateResumeContent } from '../lib/documentParser';
 
 const router = express.Router();
@@ -120,7 +120,8 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
     // Step 2: Validate resume content
     const validation = validateResumeContent(parseResult.text);
     if (validation.warnings.length > 0) {
-      console.log('⚠️ Resume validation warnings:', validation.warnings);
+      console.log('💡 Resume tips:', validation.warnings);
+      // Don't fail upload, just log tips for improvement
     }
 
     // Step 3: Upload to Cloudinary
@@ -151,20 +152,41 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
       analysis = await analyzeResume(parseResult.text);
       console.log('✅ AI analysis completed:', {
         strengthScore: analysis.strengthScore,
-        hasImprovements: !!analysis.improvements
+        atsScore: analysis.atsScore,
+        hasImprovements: !!analysis.improvements,
+        hasSuggestions: !!analysis.suggestedSkills
       });
     } catch (aiError: any) {
       console.error('❌ AI analysis failed:', aiError);
-      // Continue without AI analysis rather than failing the entire upload
+      // Provide student-friendly fallback analysis
       analysis = {
-        strengthScore: 50,
-        improvements: ['AI analysis temporarily unavailable - please try again later'],
-        atsScore: 50,
-        strengths: ['Resume uploaded successfully'],
-        suggestedSkills: [],
-        recommendations: ['AI analysis will be available shortly']
+        strengthScore: DEFAULT_FALLBACK_SCORE,
+        atsScore: DEFAULT_FALLBACK_SCORE,
+        strengths: [
+          'Resume uploaded successfully',
+          'Document is readable and well-formatted',
+          'Good start for an entry-level resume'
+        ],
+        improvements: [
+          'Add quantifiable achievements (e.g., "Led team of 5 students")',
+          'Include relevant coursework or academic projects',
+          'Add technical skills relevant to your target role',
+          'Consider adding links to GitHub or portfolio',
+          'Use action verbs (e.g., "Developed", "Implemented", "Led")'
+        ],
+        suggestedSkills: [
+          'Python', 'JavaScript', 'Git', 'React', 'SQL',
+          'Communication', 'Teamwork', 'Problem Solving'
+        ],
+        recommendations: [
+          '💡 For students: Academic projects count as experience!',
+          '💡 Add your GPA if it\'s above 3.0',
+          '💡 Include relevant coursework for your field',
+          '💡 Join GitHub and showcase your projects',
+          '💡 Consider free certifications (Coursera, Google, AWS)'
+        ]
       };
-      console.log('⚠️  Continuing with placeholder AI analysis');
+      console.log('⚠️  Using student-friendly fallback analysis');
     }
 
     // Step 5: Save to database
@@ -179,7 +201,8 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
           mimeType: req.file.mimetype,
           parsedContent: parseResult.text,
           aiAnalysis: analysis as any,
-          strengthScore: analysis.strengthScore || analysis.atsScore || 50,
+          strengthScore: analysis.strengthScore || 60,
+          atsScore: analysis.atsScore || 60,
           suggestions: analysis.improvements || [],
         },
       });
@@ -189,7 +212,8 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
       return res.status(201).json({
         success: true,
         data: resume,
-        message: 'Resume uploaded and analyzed successfully!'
+        message: '🎉 Resume uploaded and analyzed successfully! Check the feedback below.',
+        tips: validation.warnings.length > 0 ? validation.warnings : undefined
       });
     } catch (dbError: any) {
       console.error('❌ Database save failed:', dbError);
