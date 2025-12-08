@@ -9,7 +9,7 @@ This guide will help you configure the AI Resume Optimizer feature, which is ess
 The AI Resume Optimizer uses Google's Gemini AI to provide intelligent feedback on resumes.
 
 **Get Your API Key:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy the key and add it to your `.env` file
@@ -129,7 +129,7 @@ npm run dev
 
 ### "AI analysis unavailable"
 - Check that `GEMINI_API_KEY` is set in your `.env` file
-- Verify the API key is valid at [Google AI Studio](https://makersuite.google.com/app/apikey)
+- Verify the API key is valid at [Google AI Studio](https://aistudio.google.com/app/apikey)
 
 ### "Failed to upload file"
 - Check that Cloudinary credentials are correct

@@ -182,7 +182,7 @@ export function validateResumeContent(text: string): {
   }
   
   // Check for common student resume elements
-  if (!hasProjects && !hasExperience) {
+  if (!hasProjects && lowerText.includes('student') && !hasExperience) {
     warnings.push('💡 TIP: Academic projects, hackathons, and personal projects are valuable for your resume');
   }
   

@@ -9,6 +9,10 @@ const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GE
 // Use gemini-2.0-flash (gemini-pro is deprecated)
 export const geminiModel = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }) : null;
 
+// Default scores for fallback analysis (exported for use in other modules)
+export const DEFAULT_FALLBACK_SCORE = 60;
+export const DEFAULT_ERROR_SCORE = 50;
+
 /**
  * Analyze resume content using Gemini AI
  * Optimized for students and entry-level professionals
@@ -73,8 +77,8 @@ Example format:
       
       // Validate and ensure all required fields exist
       return {
-        strengthScore: parsed.strengthScore || 50,
-        atsScore: parsed.atsScore || 50,
+        strengthScore: parsed.strengthScore || DEFAULT_ERROR_SCORE,
+        atsScore: parsed.atsScore || DEFAULT_ERROR_SCORE,
         strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
         improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
         suggestedSkills: Array.isArray(parsed.suggestedSkills) ? parsed.suggestedSkills : [],
@@ -84,18 +88,18 @@ Example format:
     
     // If no JSON found, return fallback
     return { 
-      strengthScore: 50,
-      atsScore: 50,
+      strengthScore: DEFAULT_ERROR_SCORE,
+      atsScore: DEFAULT_ERROR_SCORE,
       strengths: ['Resume uploaded successfully'],
       improvements: ['AI analysis format error - please try again'],
       suggestedSkills: [],
-      recommendations: [text.substring(0, 200)]
+      recommendations: ['Unable to parse AI response. Please try uploading again.']
     };
   } catch (error: any) {
     console.error('Error analyzing resume:', error);
     return { 
-      strengthScore: 50,
-      atsScore: 50,
+      strengthScore: DEFAULT_ERROR_SCORE,
+      atsScore: DEFAULT_ERROR_SCORE,
       strengths: ['Resume uploaded successfully'],
       improvements: ['AI analysis error - please try again later'],
       suggestedSkills: [],

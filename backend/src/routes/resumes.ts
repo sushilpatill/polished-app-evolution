@@ -3,7 +3,7 @@ import multer from 'multer';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { uploadToCloudinary, deleteFromCloudinary } from '../lib/cloudinary';
-import { analyzeResume } from '../lib/gemini';
+import { analyzeResume, DEFAULT_FALLBACK_SCORE } from '../lib/gemini';
 import { extractDocumentText, validateResumeContent } from '../lib/documentParser';
 
 const router = express.Router();
@@ -160,8 +160,8 @@ router.post('/upload', requireAuth, upload.single('resume'), async (req: Request
       console.error('❌ AI analysis failed:', aiError);
       // Provide student-friendly fallback analysis
       analysis = {
-        strengthScore: 60,
-        atsScore: 60,
+        strengthScore: DEFAULT_FALLBACK_SCORE,
+        atsScore: DEFAULT_FALLBACK_SCORE,
         strengths: [
           'Resume uploaded successfully',
           'Document is readable and well-formatted',
