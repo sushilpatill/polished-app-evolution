@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 
 const HeroSection = () => {
@@ -48,10 +49,12 @@ const HeroSection = () => {
 
           {/* CTAs */}
           <div className="fade-in-up opacity-0 stagger-3 flex flex-col sm:flex-row items-center gap-4 mb-16">
-            <Button variant="hero" size="xl" className="group">
-              Get Started Free
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <Link to="/signup">
+              <Button variant="hero" size="xl" className="group">
+                Get Started Free
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
             <Button variant="hero-outline" size="xl" className="group">
               <Play className="w-5 h-5" />
               Watch Demo
